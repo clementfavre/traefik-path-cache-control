@@ -3,7 +3,7 @@
 [![CI](https://github.com/clementfavre/traefik-path-cache-control/actions/workflows/ci.yml/badge.svg)](https://github.com/clementfavre/traefik-path-cache-control/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A Traefik v3 middleware plugin that sets a `Cache-Control` header on responses whose path starts with one of the configured prefixes (e.g. `/css/`, `/js/`, `/media/`), and leaves everything else untouched.
+A Traefik v3 middleware plugin that sets a `Cache-Control` header on responses whose path matches configured prefixes or file extensions (e.g. `/css/`, `/media/`, `.woff2`), and leaves everything else untouched.
 
 ## Why
 
@@ -15,18 +15,25 @@ So we wrote a small one that does just that. You define one middleware and attac
 
 ## Behavior
 
-- If the request is a `GET` or `HEAD`, its path starts with one of `pathPrefixes`, and the response status is `200`, `206` (range requests, e.g. videos) or `304`, the `Cache-Control` header sent by the backend is replaced by `cacheControl`.
+- A rule matches a `GET` or `HEAD` request whose path starts with one of its `pathPrefixes` and/or ends with one of its `extensions`. When a rule has both, both must match. Rules are checked in order and the first match wins.
+- If the response status is `200`, `206` (range requests, e.g. videos) or `304`, the `Cache-Control` header sent by the backend is replaced by the rule's `cacheControl`.
 - Everything else passes through unchanged: other methods (`POST`, `PUT`...), other paths, errors (`404`, `500`...), redirects, and look-alike paths (`/cssfoo/` does not match `/css/`).
-- Prefixes are matched against the path only, so query strings like `?v=abc123` don't matter.
+- Matching is case-sensitive by default. Set `caseInsensitive: true` for backends that ignore case, like IIS (`/Media/Photo.JPG` then matches `/media/` and `.jpg`).
+- Only the path is matched, so query strings like `?v=abc123` don't matter.
 - Responses are not buffered: large files are streamed as usual and `Content-Length` is preserved.
-- With an empty `pathPrefixes` or `cacheControl`, the middleware fails to start. Only the routers using it are affected (404 and an error in the Traefik logs), the others keep working.
+- An invalid configuration (nothing to match, empty value, empty `cacheControl`...) makes the middleware fail to start. Only the routers using it are affected (404 and an error in the Traefik logs), the others keep working.
 
 ## Configuration
 
-| Option | Required | Default | Description |
-|---|---|---|---|
-| `pathPrefixes` | yes | none | List of path prefixes. Use a trailing slash (`/css/`) to match a folder only. |
-| `cacheControl` | no | `public, max-age=2592000` | Value of the `Cache-Control` header (30 days by default). |
+| Option | Default | Description |
+|---|---|---|
+| `pathPrefixes` | none | Shorthand for a single rule: list of path prefixes. Use a trailing slash (`/css/`) to match a folder only. |
+| `extensions` | none | Shorthand for a single rule: list of file extensions, with or without the dot (`.woff2` or `woff2`). |
+| `cacheControl` | `public, max-age=2592000` | Value of the `Cache-Control` header (30 days). Also the default for rules without their own `cacheControl`. |
+| `caseInsensitive` | `false` | Match prefixes and extensions regardless of case. |
+| `rules` | none | List of rules, each with `pathPrefixes`, `extensions` and an optional `cacheControl`. Cannot be combined with the top-level `pathPrefixes` / `extensions`. |
+
+At least one of `pathPrefixes`, `extensions` or `rules` is required.
 
 ## Installation
 
@@ -94,6 +101,34 @@ http:
       service: my-site
 ```
 
+With rules, to use a different duration per kind of file:
+
+```yaml
+http:
+  middlewares:
+    static-cache:
+      plugin:
+        pathcachecontrol:
+          caseInsensitive: true
+          # Default for the rules below
+          cacheControl: "public, max-age=2592000"
+          rules:
+            # Versioned assets: one year
+            - pathPrefixes:
+                - /css/
+                - /js/
+              cacheControl: "public, max-age=31536000, immutable"
+            # Media: default (30 days)
+            - pathPrefixes:
+                - /media/
+            # Fonts, wherever they are
+            - extensions:
+                - .woff2
+                - .woff
+```
+
+Only use `immutable` on files whose URL changes with each release, the browser won't even revalidate them.
+
 To apply it to every site behind an entrypoint, add it to the entrypoint instead (static configuration):
 
 ```yaml
@@ -129,7 +164,7 @@ Traefik runs plugins with the [Yaegi](https://github.com/traefik/yaegi) interpre
 
 ### Integration test
 
-`test/integration/run.sh` starts a real Traefik (`v3.7.14` by default, override with `TRAEFIK_VERSION`) that loads this repository as a local plugin, in front of an nginx backend, then checks the responses with `curl`: headers on CSS, JS, media, `HEAD`, `206` and `304`, untouched pages, `POST`, `404` and redirects, a 5 MB file streamed with its `Content-Length`, and no error in the Traefik logs.
+`test/integration/run.sh` starts a real Traefik (`v3.7.14` by default, override with `TRAEFIK_VERSION`) that loads this repository as a local plugin, in front of an nginx backend, then checks the responses with `curl`: headers on CSS, JS, media, `HEAD`, `206` and `304`, untouched pages, `POST`, `404` and redirects, rules with their own or the default `cacheControl`, extensions, case insensitive matching, a 5 MB file streamed with its `Content-Length`, and no error in the Traefik logs.
 
 ```bash
 bash test/integration/run.sh

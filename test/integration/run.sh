@@ -62,6 +62,19 @@ check "lookalike untouched" 200 "no-cache" "$URL/cssfoo/main.css"
 check "post untouched" 200 "no-cache" -X POST "$URL/media/upload"
 check "404 untouched" 404 "-" "$URL/media/missing.jpg"
 check "redirect untouched" 302 "no-cache" "$URL/media/old.jpg"
+check "case sensitive by default" 200 "no-cache" "$URL/Media/Photo.JPG"
+
+# Second middleware: rules, extensions and case insensitive matching
+HOST="Host: rules.localhost"
+YEAR="public, max-age=31536000, immutable"
+
+check "rules: own cacheControl" 200 "$YEAR" "$URL/css/main.css"
+check "rules: default cacheControl" 200 "$LONG" "$URL/media/photo.jpg"
+check "rules: extension" 200 "$LONG" "$URL/fonts/site.woff2"
+check "rules: case insensitive" 200 "$LONG" "$URL/Media/Photo.JPG"
+check "rules: page untouched" 200 "no-cache" "$URL/index.html"
+
+HOST="Host: site.localhost"
 
 # Large file: full size and Content-Length kept
 length=$(curl -s -o /dev/null -D - -H "$HOST" "$URL/media/big.bin" | tr -d '\r' | grep -i '^content-length:' | cut -d' ' -f2)

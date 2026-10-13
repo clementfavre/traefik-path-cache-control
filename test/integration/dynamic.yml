@@ -9,6 +9,21 @@ http:
             - /media/
           cacheControl: "public, max-age=2592000"
 
+    static-cache-rules:
+      plugin:
+        pathcachecontrol:
+          caseInsensitive: true
+          cacheControl: "public, max-age=2592000"
+          rules:
+            - pathPrefixes:
+                - /css/
+                - /js/
+              cacheControl: "public, max-age=31536000, immutable"
+            - pathPrefixes:
+                - /media/
+            - extensions:
+                - woff2
+
   routers:
     site:
       rule: Host(`site.localhost`)
@@ -16,6 +31,14 @@ http:
         - web
       middlewares:
         - static-cache
+      service: site
+
+    rules:
+      rule: Host(`rules.localhost`)
+      entryPoints:
+        - web
+      middlewares:
+        - static-cache-rules
       service: site
 
   services:
