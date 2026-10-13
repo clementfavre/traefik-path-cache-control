@@ -32,6 +32,7 @@ func newHandler(t *testing.T, status int) http.Handler {
 func TestCacheControl(t *testing.T) {
 	tests := []struct {
 		name   string
+		method string
 		path   string
 		status int
 		want   string
@@ -39,7 +40,10 @@ func TestCacheControl(t *testing.T) {
 		{name: "css", path: "/css/default/main.css", status: http.StatusOK, want: longCache},
 		{name: "js", path: "/js/main.js", status: http.StatusOK, want: longCache},
 		{name: "media", path: "/media/abc/photo.jpg", status: http.StatusOK, want: longCache},
+		{name: "partial content", path: "/media/abc/video.mp4", status: http.StatusPartialContent, want: longCache},
 		{name: "not modified", path: "/css/main.css", status: http.StatusNotModified, want: longCache},
+		{name: "head", method: http.MethodHead, path: "/css/main.css", status: http.StatusOK, want: longCache},
+		{name: "post untouched", method: http.MethodPost, path: "/media/upload", status: http.StatusOK, want: "no-cache"},
 		{name: "page untouched", path: "/contact", status: http.StatusOK, want: "no-cache"},
 		{name: "prefix lookalike untouched", path: "/cssfoo/main.css", status: http.StatusOK, want: "no-cache"},
 		{name: "404 untouched", path: "/media/missing.jpg", status: http.StatusNotFound, want: "no-cache"},
@@ -48,8 +52,13 @@ func TestCacheControl(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			method := tt.method
+			if method == "" {
+				method = http.MethodGet
+			}
+
 			rec := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			req := httptest.NewRequest(method, tt.path, nil)
 
 			newHandler(t, tt.status).ServeHTTP(rec, req)
 

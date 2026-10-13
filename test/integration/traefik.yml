@@ -1,0 +1,15 @@
+entryPoints:
+  web:
+    address: ":80"
+
+providers:
+  file:
+    filename: /etc/traefik/dynamic.yml
+
+experimental:
+  localPlugins:
+    pathcachecontrol:
+      moduleName: github.com/clementfavre/traefik-path-cache-control
+
+log:
+  level: INFO

@@ -10,8 +10,8 @@ With this plugin, you define one middleware and attach it to the site's main rou
 
 ## Behavior
 
-- If the request path starts with one of `pathPrefixes` and the response status is `200` or `304`, the `Cache-Control` header sent by the backend is replaced by `cacheControl`.
-- Everything else passes through unchanged: other paths, errors (`404`, `500`...), redirects, and look-alike paths (`/cssfoo/` does not match `/css/`).
+- If the request is a `GET` or `HEAD`, its path starts with one of `pathPrefixes`, and the response status is `200`, `206` (range requests, e.g. videos) or `304`, the `Cache-Control` header sent by the backend is replaced by `cacheControl`.
+- Everything else passes through unchanged: other methods (`POST`, `PUT`...), other paths, errors (`404`, `500`...), redirects, and look-alike paths (`/cssfoo/` does not match `/css/`).
 - Prefixes are matched against the path only, so query strings like `?v=abc123` don't matter.
 - Responses are not buffered: large files are streamed as usual and `Content-Length` is preserved.
 - With an empty `pathPrefixes` or `cacheControl`, the middleware fails to start. Only the routers using it are affected (404 and an error in the Traefik logs), the others keep working.
@@ -120,4 +120,14 @@ Run the tests in a Go container:
 docker run --rm -v "$PWD:/src" -w /src golang:1.22-alpine go test -v ./...
 ```
 
-The plugin was also tested in Traefik `v3.7.14` (Yaegi) in front of an nginx backend: CSS, JS and media get the header, pages, 404 and 302 are untouched, 304 gets the header, and a 5 MB file is streamed with its `Content-Length`.
+Traefik runs plugins with the [Yaegi](https://github.com/traefik/yaegi) interpreter, not the Go compiler, so the tests also run under Yaegi in CI (see `.github/workflows/ci.yml`).
+
+### Integration test
+
+`test/integration/run.sh` starts a real Traefik (`v3.7.14` by default, override with `TRAEFIK_VERSION`) that loads this repository as a local plugin, in front of an nginx backend, then checks the responses with `curl`: headers on CSS, JS, media, `HEAD`, `206` and `304`, untouched pages, `POST`, `404` and redirects, a 5 MB file streamed with its `Content-Length`, and no error in the Traefik logs.
+
+```bash
+bash test/integration/run.sh
+```
+
+It needs Docker with Compose and uses port `18080`.

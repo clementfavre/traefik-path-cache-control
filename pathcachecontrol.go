@@ -49,8 +49,8 @@ func New(_ context.Context, next http.Handler, config *Config, name string) (htt
 }
 
 func (s *PathCacheControl) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	// Other paths go straight through, no wrapping
-	if !s.matches(req.URL.Path) {
+	// Other methods and paths go straight through, no wrapping
+	if (req.Method != http.MethodGet && req.Method != http.MethodHead) || !s.matches(req.URL.Path) {
 		s.next.ServeHTTP(rw, req)
 		return
 	}
@@ -88,8 +88,9 @@ func (r *responseWriter) WriteHeader(statusCode int) {
 
 	r.wroteHeader = true
 
-	// Never cache errors or redirects
-	if statusCode == http.StatusOK || statusCode == http.StatusNotModified {
+	// Only successful responses, never errors or redirects
+	switch statusCode {
+	case http.StatusOK, http.StatusPartialContent, http.StatusNotModified:
 		r.ResponseWriter.Header().Set("Cache-Control", r.cacheControl)
 	}
 

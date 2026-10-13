@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+  pull_request:
+
+env:
+  GO_VERSION: "1.22"
+  YAEGI_VERSION: v0.16.1
+
+jobs:
+  test:
+    name: Unit tests (Go and Yaegi)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # Yaegi resolves the package from a GOPATH layout
+        working-directory: ${{ github.workspace }}/go/src/github.com/${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: go/src/github.com/${{ github.repository }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -v ./...
+
+      - name: Install Yaegi
+        run: go install github.com/traefik/yaegi/cmd/yaegi@${{ env.YAEGI_VERSION }}
+
+      - name: Test with Yaegi
+        run: yaegi test -v .
+        env:
+          GOPATH: ${{ github.workspace }}/go
+          GO111MODULE: "off"
+
+  integration:
+    name: Integration (Traefik + nginx)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Traefik with the plugin
+        run: bash test/integration/run.sh

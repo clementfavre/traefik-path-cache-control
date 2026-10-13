@@ -1,0 +1,18 @@
+services:
+  backend:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./site:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+  traefik:
+    image: traefik:${TRAEFIK_VERSION:-v3.7.14}
+    ports:
+      - "18080:80"
+    volumes:
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./dynamic.yml:/etc/traefik/dynamic.yml:ro
+      # The repository itself is loaded as a local plugin
+      - ../..:/plugins-local/src/github.com/clementfavre/traefik-path-cache-control:ro
+    depends_on:
+      - backend

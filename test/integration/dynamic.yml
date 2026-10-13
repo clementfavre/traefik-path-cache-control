@@ -1,0 +1,25 @@
+http:
+  middlewares:
+    static-cache:
+      plugin:
+        pathcachecontrol:
+          pathPrefixes:
+            - /css/
+            - /js/
+            - /media/
+          cacheControl: "public, max-age=2592000"
+
+  routers:
+    site:
+      rule: Host(`site.localhost`)
+      entryPoints:
+        - web
+      middlewares:
+        - static-cache
+      service: site
+
+  services:
+    site:
+      loadBalancer:
+        servers:
+          - url: http://backend:80
