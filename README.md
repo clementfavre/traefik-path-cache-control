@@ -1,12 +1,17 @@
 # Path Cache-Control
 
+[![CI](https://github.com/clementfavre/traefik-path-cache-control/actions/workflows/ci.yml/badge.svg)](https://github.com/clementfavre/traefik-path-cache-control/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A Traefik v3 middleware plugin that sets a `Cache-Control` header on responses whose path starts with one of the configured prefixes (e.g. `/css/`, `/js/`, `/media/`), and leaves everything else untouched.
 
 ## Why
 
-Traefik's built-in `headers` middleware has no path condition: it applies to every response of the router it is attached to. To give static assets a long browser cache without caching HTML pages, you usually need an extra router per site with a `PathPrefix` rule.
+This plugin came out of a real need. We run many websites behind Traefik and wanted browsers to keep static files (CSS, JS, images and other media) for a long time, while HTML pages stay fresh. We also wanted to do it at the proxy level, the same way for every site, instead of changing each application.
 
-With this plugin, you define one middleware and attach it to the site's main router (or to an entrypoint).
+Traefik's built-in `headers` middleware has no path condition: it applies to every response of the router it is attached to. The native way is an extra router per site with a `PathPrefix` rule, which gets tedious to maintain across many sites. The plugins we found either could not match on the path or held whole responses in memory, which is not something you want on large media files.
+
+So we wrote a small one that does just that. You define one middleware and attach it to the site's main router (or to an entrypoint).
 
 ## Behavior
 
@@ -131,3 +136,7 @@ bash test/integration/run.sh
 ```
 
 It needs Docker with Compose and uses port `18080`.
+
+## License
+
+MIT, see [LICENSE](LICENSE).

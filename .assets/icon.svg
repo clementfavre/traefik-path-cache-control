@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Background -->
+  <rect width="256" height="256" rx="56" fill="#0F766E"/>
+  <!-- Folder: the path prefix -->
+  <path d="M44 86a14 14 0 0 1 14-14h40l18 18h82a14 14 0 0 1 14 14v84a14 14 0 0 1-14 14H58a14 14 0 0 1-14-14z" fill="#FFFFFF"/>
+  <!-- Clock: the cache lifetime -->
+  <circle cx="180" cy="172" r="48" fill="#F59E0B" stroke="#0F766E" stroke-width="10"/>
+  <path d="M180 146v28l18 12" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

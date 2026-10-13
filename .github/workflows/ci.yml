@@ -19,11 +19,11 @@ jobs:
         # Yaegi resolves the package from a GOPATH layout
         working-directory: ${{ github.workspace }}/go/src/github.com/${{ github.repository }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: go/src/github.com/${{ github.repository }}
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
@@ -50,7 +50,7 @@ jobs:
     name: Integration (Traefik + nginx)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Run Traefik with the plugin
         run: bash test/integration/run.sh
