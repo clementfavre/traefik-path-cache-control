@@ -1,0 +1,11 @@
+displayName: Path Cache-Control
+type: middleware
+import: github.com/clementfavre/traefik-path-cache-control
+summary: Sets Cache-Control on responses whose path starts with a given prefix (e.g. /css/, /js/, /media/), without buffering
+
+testData:
+  pathPrefixes:
+    - /css/
+    - /js/
+    - /media/
+  cacheControl: public, max-age=2592000
